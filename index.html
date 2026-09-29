@@ -450,7 +450,7 @@
                 };
             },
             onEachFeature: function(f, l) {
-                var nombreAlcaldia = f.properties.NOMGEO || f.properties.NOMDT || f.properties. alcaldia || 'Alcaldía';
+                var nombreAlcaldia = f.properties.NOMMUN || f.properties.NOMMUN || f.properties. alcaldia || 'Alcaldía';
                 l.bindPopup('<b>Alcaldía:</b> ' + nombreAlcaldia);
             }
         }).addTo(map);
