@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mapa de Desalojos - CDMX</title>
+
+    <!-- Leaflet CSS y JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Cargar archivos de datos -->
+    <script type="text/javascript" src="colonias_count_copia.js"></script>
+    <script type="text/javascript" src="datos_finales_copia.js"></script>
+    <script type="text/javascript" src="alcaldias_copia.js"></script>
+    <script type="text/javascript" src="hoteles_copia.js"></script> 
+
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: "Segoe UI", Roboto, Arial, sans-serif;
+        }
+
+        #map { 
+            width: 100%; 
+            height: 100vh;
+        }
+
+        #map-title {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 30, 0.85);
+            color: #f5f5f5;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-align: center;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+
+        .popup-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+
+        .svg-marker-icon {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        /* =========================================================
+           1. RECUADRO INFORMATIVO CON LOGOTIPO (IZQUIERDA)
+           ========================================================= */
+        #info-panel {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 260px;
+            background: rgba(255, 255, 255, 0.92);
+            padding: 14px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .logo-container {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .logo-container img {
+            max-width: 100%;
+            height: auto;
+            max-height: 70px;
+            object-fit: contain;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #333;
+            line-height: 1.4em;
+        }
+
+        /* =========================================================
+           2. LEYENDA CONTINUA PARA LA CAPA DE COLONIAS (INFERIOR)
+           ========================================================= */
+        #colonia-legend {
+            position: absolute;
+            bottom: 30px;
+            left: 290px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 11px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            width: 180px;
+            backdrop-filter: blur(4px);
+        }
+
+        .legend-gradient {
+            height: 12px;
+            width: 100%;
+            border-radius: 3px;
+            margin: 6px 0 4px 0;
+            background: linear-gradient(to right, #31a354, #FEB24C, #FD8D3C, #FC4E2A, #E31A1C, #BD0026, #800026);
+            border: 1px solid #ccc;
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            color: #555;
+            font-weight: 600;
+        }
+
+        /* =========================================================
+           3. LEYENDA DESPLEGABLE DE FORMAS GEOMÉTRICAS
+           ========================================================= */
+        #forma-legend {
+            position: absolute;
+            bottom: 30px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            line-height: 1.8em;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .legend-header-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        .toggle-btn {
+            background: #e0e0e0;
+            border: none;
+            border-radius: 3px;
+            width: 18px;
+            height: 18px;
+            font-size: 11px;
+            line-height: 18px;
+            text-align: center;
+            margin-left: 8px;
+            cursor: pointer;
+        }
+
+        .legend-content {
+            margin-top: 6px;
+        }
+
+        /* =========================================================
+           4. LEYENDA JERÁRQUICA COLAPSABLE (DERECHA)
+           ========================================================= */
+        #custom-legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            z-index: 1000;
+            max-height: 80vh;
+            overflow-y: auto;
+            width: 280px;
+            backdrop-filter: blur(4px);
+        }
+
+        .legend-header {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .category-item {
+            margin-bottom: 6px;
+        }
+
+        .category-title {
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 0;
+            user-select: none;
+        }
+
+        .category-title:hover {
+            color: #2780F5;
+        }
+
+        .toggle-arrow {
+            font-size: 10px;
+            transition: transform 0.2s ease;
+        }
+
+        /* Indentación de Subcategorías */
+        .subcategory-list {
+            margin-left: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 4px;
+            margin-bottom: 8px;
+        }
+
+        .subcategory-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .shape-preview {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px;
+            height: 14px;
+        }
+
+        .collapsed {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map-title">
+        <div style="font-size: 18px; font-weight: 600;">Mapa de desalojos (v3)</div>
+        <div style="font-size: 12px; opacity: 0.8;">Ciudad de México | 2011–2026</div>
+    </div>
+
+    <!-- Panel Informativo y Logotipo en la parte izquierda -->
+    <div id="info-panel">
+        <div class="logo-container">
+            <!-- Cambia 'logo.png' por la ruta de tu logotipo -->
+            <img src="logo.png" alt="Logotipo Institucional" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+            <div style="display:none; font-weight:bold; color:#666;">[ LOGOTIPO ]</div>
+        </div>
+        <div class="info-text">
+            <b>Acerca de este proyecto:</b><br>
+            Este mapa interactivo visibiliza la distribución territorial de los desalojos registrados en la Ciudad de México. Permite analizar las dinámicas urbanas mediante filtros por categorías, conteo por colonia, alcaldías y hoteles.
+        </div>
+    </div>
+
+    <!-- Leyenda Continua de la Capa Colonias (Verde a Rojo) -->
+    <div id="colonia-legend">
+        <b>Desalojos por Colonia:</b>
+        <div class="legend-gradient"></div>
+        <div class="legend-labels">
+            <span>0</span>
+            <span>5</span>
+            <span>10</span>
+            <span>>15</span>
+        </div>
+    </div>
+
+    <!-- Leyenda Desplegable de Formas por Categoría -->
+    <div id="forma-legend">
+        <div class="legend-header-toggle" onclick="toggleFormaLegend()">
+            <span>Forma por Categoría</span>
+            <button class="toggle-btn" id="btn-toggle-legend">_</button>
+        </div>
+        <div class="legend-content" id="forma-legend-content">
+            <svg width="14" height="14" style="vertical-align: middle;"><rect width="12" height="12" fill="#666" stroke="#000"/></svg> No especificado (Cuadrado)<br>
+            <svg width="14" height="14" style="vertical-align: middle;"><polygon points="7,1 13,13 1,13" fill="#666" stroke="#000"/></svg> Silencioso (Triángulo)<br>
+            <svg width="14" height="14" style="vertical-align: middle;"><circle cx="7" cy="7" r="6" fill="#666" stroke="#000"/></svg> Directo (Círculo)
+        </div>
+    </div>
+
+    <!-- Contenedor para la Leyenda Jerárquica Personalizada -->
+    <div id="custom-legend">
+        <div class="legend-header">Capas y Leyenda</div>
+        
+        <!-- Capa temática de Alcaldías (Nuevas) -->
+        <div class="category-item" style="margin-bottom: 6px;">
+            <label style="font-weight: 600; cursor: pointer;">
+                <input type="checkbox" id="chk-alcaldias" checked /> Delimitación de Alcaldías
+            </label>
+        </div>
+
+        <!-- Capa temática de colonias -->
+        <div class="category-item" style="margin-bottom: 6px;">
+            <label style="font-weight: 600; cursor: pointer;">
+                <input type="checkbox" id="chk-colonias" checked /> Conteo por colonia
+            </label>
+        </div>
+
+        <!-- Capa temática de Hoteles (Nuevos) -->
+        <div class="category-item" style="margin-bottom: 6px;">
+            <label style="font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <input type="checkbox" id="chk-hoteles" checked /> 
+                <span style="display:inline-block; width:12px; height:12px; background:#1b75bc; border:1px solid #000; border-radius:50%;"></span> Hoteles
+            </label>
+        </div>
+
+        <div style="border-top: 1px dashed #ccc; margin: 8px 0;"></div>
+        
+        <!-- Generación dinámica del árbol Categorías -> Subcategorías de desalojos -->
+        <div id="hierarchy-container"></div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        // 1. Inicializar mapa
+        var map = L.map("map").setView([19.4227, -99.1392], 12);
+
+        // 2. Mapa Base
+        var esriBase = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", {
+            attribution: 'Tiles &copy; Esri &mdash; Esri, USGS, NOAA',
+            maxZoom: 18
+        }).addTo(map);
+
+        // 3. Funciones de limpieza de cadenas
+        function cleanText(str) {
+            return (str || '')
+                .toString()
+                .trim()
+                .toLowerCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+
+        // 4. Paleta de colores por Subcategoría
+        function getColorSubcat(subcat) {
+            switch (subcat) {
+                case 'Aumento excesivo de renta': return '#0ACCB6';
+                case 'Conversión a renta turística': return '#F29478';
+                case 'Desalojo administrativo': return '#FCFC30';
+                case 'Desalojo judicial': return '#000000';
+                case 'Desalojo por supuesto despojo': return '#014705';
+                case 'En riesgo': return '#F527DD';
+                case 'Encarecimiento de la zona': return '#E83F02';
+                case 'Hostigamiento criminal': return '#542E03';
+                case 'Hostigamiento inmobiliario': return '#56EB38';
+                case 'No especificado': return '#251C75'; 
+                case 'No renovación de contrato': return '#4C0691';
+                default: return '#ff7f00';
+            }
+        }
+
+        // 5. Generador de SVG geométrico para marcadores de desalojos
+        function crearIconoGeometria(categoriaRaw, color) {
+            var cat = cleanText(categoriaRaw);
+            var svgContent = '';
+
+            if (cat.includes('no especificado')) {
+                svgContent = '<rect x="2" y="2" width="16" height="16" fill="' + color + '" stroke="#000" stroke-width="1.5" rx="1"/>';
+            } else if (cat.includes('silencios')) {
+                svgContent = '<polygon points="10,2 18,18 2,18" fill="' + color + '" stroke="#000" stroke-width="1.5"/>';
+            } else {
+                svgContent = '<circle cx="10" cy="10" r="8" fill="' + color + '" stroke="#000" stroke-width="1.5"/>';
+            }
+
+            return L.divIcon({
+                html: '<svg width="20" height="20" viewBox="0 0 20 20">' + svgContent + '</svg>',
+                className: 'svg-marker-icon',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+        }
+
+        // Genera vista previa SVG para colocar adentro de la leyenda HTML
+        function getSVGPreview(catRaw, color) {
+            var cat = cleanText(catRaw);
+            if (cat.includes('no especificado')) {
+                return '<svg width="12" height="12"><rect width="11" height="11" fill="' + color + '" stroke="#000"/></svg>';
+            } else if (cat.includes('silencios')) {
+                return '<svg width="12" height="12"><polygon points="6,1 11,11 1,11" fill="' + color + '" stroke="#000"/></svg>';
+            }
+            return '<svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="' + color + '" stroke="#000"/></svg>';
+        }
+
+        // 6. Formatear enlaces de Google Drive y Popups
+        function formatearUrlDrive(url) {
+            if (!url) return '';
+            if (url.includes('drive.google.com')) {
+                var match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) return 'https://drive.google.com/uc?export=view&id=' + match[1];
+            }
+            return url;
+        }
+
+        function bindPopupContent(feature, layer) {
+            if (feature.properties) {
+                var p = feature.properties;
+                var popupContent = 
+                    '<b>Categoría:</b> ' + (p.CATEGORIA || 'N/A') + '<br>' +
+                    '<b>Subcategoría:</b> ' + (p.SUBCATEGORIA || 'N/A') + '<br>' +
+                    '<b>Calle:</b> ' + (p.CALLE || 'N/A') + '<br>' +
+                    '<b>Colonia:</b> ' + (p.COLONIA || 'N/A') + '<br>' +
+                    '<b>Alcaldía:</b> ' + (p.ALCALDIA || 'N/A') + '<br>' +
+                    '<b>Fecha:</b> ' + (p.FECHA || 'N/A') + '<br>' +
+                    '<b>Tipo:</b> ' + (p.TIPO || 'N/A') + '<br>' +
+                    '<b>Descripción:</b> ' + (p.DESCRIPCION || 'N/A') + '<br>' +
+                    '<b>Observaciones:</b> ' + (p.OBSERVACIONES || 'N/A') + '<br>' +
+                    '<b>Familias afectadas:</b> ' + (p.FAMILIAS_Y_O_NEGOCIOS_AFECTADOS || 'N/A') + '<br>';
+                
+                if (p.URL_IMAGEN) {
+                    popupContent += '<br><img src="' + formatearUrlDrive(p.URL_IMAGEN) + '" class="popup-image" alt="Foto"/>';
+                }
+                if (p.VIDEO) {
+                    popupContent += '<div style="margin-top: 8px;"><a href="' + p.VIDEO + '" target="_blank" style="color: red; font-weight: bold; text-decoration: none;">📺 Ver video en YouTube</a></div>';  
+                }
+                layer.bindPopup(popupContent);
+            }
+        }
+
+        // =========================================================
+        // 7. CAPAS ADICIONALES: ALCALDÍAS Y HOTELES
+        // =========================================================
+        
+        // Capa de Polígonos: Alcaldías
+        var capaAlcaldias = L.geoJSON(alcaldias, {
+            style: function(f) {
+                return {
+                    fillColor: '#3388ff',
+                    weight: 2,
+                    opacity: 1,
+                    color: '#2b547e',
+                    fillOpacity: 0.1 // Polígonos semitransparentes para dejar ver el fondo
+                };
+            },
+            onEachFeature: function(f, l) {
+                var nombreAlcaldia = f.properties.NOMGEO || f.properties.NOMDT || f.properties. alcaldia || 'Alcaldía';
+                l.bindPopup('<b>Alcaldía:</b> ' + nombreAlcaldia);
+            }
+        }).addTo(map);
+
+        // Control para activar/desactivar capa Alcaldías
+        document.getElementById('chk-alcaldias').addEventListener('change', function(e) {
+            if (e.target.checked) map.addLayer(capaAlcaldias);
+            else map.removeLayer(capaAlcaldias);
+        });
+
+        // Capa de Puntos: Hoteles
+        var iconoHotel = L.divIcon({
+            html: '<svg width="18" height="18" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#1b75bc" stroke="#ffffff" stroke-width="2"/><text x="10" y="14" font-size="10" fill="#fff" text-anchor="middle" font-weight="bold">H</text></svg>',
+            className: 'svg-marker-icon',
+            iconSize: [18, 18],
+            iconAnchor: [9, 9]
+        });
+
+        var capaHoteles = L.geoJSON(hoteles, {
+            pointToLayer: function(f, latlng) {
+                return L.marker(latlng, { icon: iconoHotel });
+            },
+            onEachFeature: function(f, l) {
+                var p = f.properties;
+                var nombreHotel = p.NOMBRE || p.nombre || p.HOTEL || 'Hotel';
+                l.bindPopup('<b>Hotel:</b> ' + nombreHotel + '<br><b>Dirección:</b> ' + (p.DIRECCION || p.direccion || 'No especificada'));
+            }
+        }).addTo(map);
+
+        // Control para activar/desactivar capa Hoteles
+        document.getElementById('chk-hoteles').addEventListener('change', function(e) {
+            if (e.target.checked) map.addLayer(capaHoteles);
+            else map.removeLayer(capaHoteles);
+        });
+
+        // 8. Capa temática de Colonias
+        var capaColonias = L.geoJSON(colonias, {
+            style: function(f) {
+                var d = f.properties.desal_ago_2026;
+                var c = d > 15 ? '#800026' : d > 10 ? '#BD0026' : d > 5 ? '#E31A1C' : d > 3 ? '#FC4E2A' : d > 1 ? '#FD8D3C' : d > 0 ? '#FEB24C' : '#31a354';
+                return { fillColor: c, weight: 1, opacity: 1, color: 'white', fillOpacity: 0.6 };
+            },
+            onEachFeature: function(f, l) {
+                l.bindPopup('<b>Alcaldía:</b> ' + f.properties.NOMDT + '<br><b>Colonia:</b> ' + f.properties.NOMUT + '<br><b>Total desalojos:</b> ' + f.properties.desal_ago_2026);
+            }
+        }).addTo(map);
+
+        // Controlador para activar/ocultar Capa Colonias y su Leyenda Continua
+        document.getElementById('chk-colonias').addEventListener('change', function(e) {
+            var legendElem = document.getElementById('colonia-legend');
+            if (e.target.checked) {
+                map.addLayer(capaColonias);
+                legendElem.style.display = 'block';
+            } else {
+                map.removeLayer(capaColonias);
+                legendElem.style.display = 'none';
+            }
+        });
+
+        // =========================================================
+        // 9. CONSTRUCCIÓN DE ESTRUCTURA Y LEYENDA JERÁRQUICA (DESALOJOS)
+        // =========================================================
+        var mapaCapas = {};
+
+        todosLosDesalojos.features.forEach(function(feature) {
+            var cat = (feature.properties.CATEGORIA || 'Sin Categoría').trim();
+            var subcat = (feature.properties.SUBCATEGORIA || 'Sin Subcategoría').trim();
+
+            if (!mapaCapas[cat]) mapaCapas[cat] = {};
+            if (!mapaCapas[cat][subcat]) {
+                mapaCapas[cat][subcat] = L.geoJSON(null, {
+                    pointToLayer: function (f, latlng) {
+                        return L.marker(latlng, { 
+                            icon: crearIconoGeometria(f.properties.CATEGORIA, getColorSubcat(f.properties.SUBCATEGORIA)) 
+                        });
+                    },
+                    onEachFeature: bindPopupContent
+                }).addTo(map);
+            }
+            mapaCapas[cat][subcat].addData(feature);
+        });
+
+        // Generar la interfaz HTML dinámica
+        var hierarchyContainer = document.getElementById('hierarchy-container');
+
+        Object.keys(mapaCapas).sort().forEach(function(cat, catIdx) {
+            var catId = 'cat-' + catIdx;
+            var catItem = document.createElement('div');
+            catItem.className = 'category-item';
+
+            // HTML de la Categoría Padre
+            catItem.innerHTML = 
+                '<div class="category-title">' +
+                    '<span class="toggle-arrow" id="arrow-' + catId + '">▼</span>' +
+                    '<label style="cursor:pointer;" onclick="event.stopPropagation();">' +
+                        '<input type="checkbox" id="chk-' + catId + '" checked /> ' + cat +
+                    '</label>' +
+                '</div>' +
+                '<div class="subcategory-list" id="list-' + catId + '"></div>';
+
+            hierarchyContainer.appendChild(catItem);
+
+            var subListContainer = catItem.querySelector('#list-' + catId);
+            var arrow = catItem.querySelector('#arrow-' + catId);
+            var titleDiv = catItem.querySelector('.category-title');
+            var parentChk = catItem.querySelector('#chk-' + catId);
+
+            // Funcionalidad Colapsar/Desplegar
+            titleDiv.addEventListener('click', function() {
+                var isCollapsed = subListContainer.classList.toggle('collapsed');
+                arrow.style.transform = isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+            });
+
+            // Generar las Subcategorías Hijas con Indentación
+            Object.keys(mapaCapas[cat]).sort().forEach(function(subcat, subIdx) {
+                var subId = catId + '-sub-' + subIdx;
+                var color = getColorSubcat(subcat);
+                var shapePreview = getSVGPreview(cat, color);
+
+                var subItem = document.createElement('div');
+                subItem.className = 'subcategory-item';
+                subItem.innerHTML = 
+                    '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;">' +
+                        '<input type="checkbox" class="sub-chk-' + catId + '" id="' + subId + '" checked /> ' +
+                        '<span class="shape-preview">' + shapePreview + '</span> ' + subcat +
+                    '</label>';
+
+                subListContainer.appendChild(subItem);
+
+                // Evento Checkbox Subcategoría
+                var subChk = subItem.querySelector('#' + subId);
+                subChk.addEventListener('change', function(e) {
+                    var layer = mapaCapas[cat][subcat];
+                    if (e.target.checked) map.addLayer(layer);
+                    else map.removeLayer(layer);
+
+                    // Actualizar el estado del Checkbox Padre si todos están desmarcados o marcados
+                    var allSubChks = Array.from(document.querySelectorAll('.sub-chk-' + catId));
+                    parentChk.checked = allSubChks.some(chk => chk.checked);
+                });
+            });
+
+            // Evento Checkbox Categoría Padre (Activa / Desactiva todas las hijas)
+            parentChk.addEventListener('change', function(e) {
+                var isChecked = e.target.checked;
+                Object.keys(mapaCapas[cat]).forEach(function(subcat) {
+                    var layer = mapaCapas[cat][subcat];
+                    if (isChecked) map.addLayer(layer);
+                    else map.removeLayer(layer);
+                });
+
+                // Marcar/desmarcar checkboxes hijos en la interfaz
+                document.querySelectorAll('.sub-chk-' + catId).forEach(function(chk) {
+                    chk.checked = isChecked;
+                });
+            });
+        });
+
+        // =========================================================
+        // FUNCIONALIDAD COLAPSAR/DESPLEGAR LEYENDA DE FORMAS
+        // =========================================================
+        function toggleFormaLegend() {
+            var content = document.getElementById('forma-legend-content');
+            var btn = document.getElementById('btn-toggle-legend');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                btn.textContent = '_';
+            } else {
+                content.classList.add('collapsed');
+                btn.textContent = '+';
+            }
+        }
+    </script>
+</body> 
+</html>
