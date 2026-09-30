@@ -57,8 +57,8 @@
         }
 
         /* =========================================================
-           1. RECUADRO INFORMATIVO CON LOGOTIPO (IZQUIERDA)
-           ========================================================= */
+            1. RECUADRO INFORMATIVO CON LOGOTIPO (IZQUIERDA)
+            ========================================================= */
         #info-panel {
             position: absolute;
             top: 15px;
@@ -94,8 +94,8 @@
         }
 
         /* =========================================================
-           2. LEYENDA CONTINUA PARA LA CAPA DE COLONIAS (INFERIOR)
-           ========================================================= */
+            2. LEYENDA CONTINUA PARA LA CAPA DE COLONIAS (INFERIOR)
+            ========================================================= */
         #colonia-legend {
             position: absolute;
             bottom: 30px;
@@ -108,6 +108,7 @@
             z-index: 1000;
             width: 180px;
             backdrop-filter: blur(4px);
+            display: none; /* Apagada por defecto junto con la capa */
         }
 
         .legend-gradient {
@@ -127,8 +128,8 @@
         }
 
         /* =========================================================
-           3. LEYENDA DESPLEGABLE DE FORMAS GEOMÉTRICAS
-           ========================================================= */
+            3. LEYENDA DESPLEGABLE DE FORMAS GEOMÉTRICAS
+            ========================================================= */
         #forma-legend {
             position: absolute;
             bottom: 30px;
@@ -171,8 +172,8 @@
         }
 
         /* =========================================================
-           4. LEYENDA JERÁRQUICA COLAPSABLE (DERECHA)
-           ========================================================= */
+            4. LEYENDA JERÁRQUICA COLAPSABLE (DERECHA)
+            ========================================================= */
         #custom-legend {
             position: absolute;
             top: 20px;
@@ -189,10 +190,14 @@
             backdrop-filter: blur(4px);
         }
 
-        .legend-header {
+        .legend-header-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-weight: bold;
             font-size: 14px;
-            margin-bottom: 8px;
+            cursor: pointer;
+            user-select: none;
             padding-bottom: 5px;
             border-bottom: 1px solid #ccc;
         }
@@ -261,7 +266,6 @@
     <!-- Panel Informativo y Logotipo en la parte izquierda -->
     <div id="info-panel">
         <div class="logo-container">
-            <!-- Cambia 'logo.png' por la ruta de tu logotipo -->
             <img src="https://i.imgur.com/6iVbp04.jpeg" alt="Logotipo Institucional" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
             <div style="display:none; font-weight:bold; color:#666;">[ LOGOTIPO ]</div>
         </div>
@@ -296,36 +300,41 @@
         </div>
     </div>
 
-    <!-- Contenedor para la Leyenda Jerárquica Personalizada -->
+    <!-- Contenedor para la Leyenda Jerárquica Personalizada (Con collapse TRUE por defecto) -->
     <div id="custom-legend">
-        <div class="legend-header">Capas y Leyenda</div>
+        <div class="legend-header-main" onclick="toggleMainLegend()">
+            <span>Capas y Leyenda</span>
+            <span class="toggle-arrow" id="main-arrow" style="transform: rotate(-90deg);">▼</span>
+        </div>
         
-        <!-- Capa temática de Alcaldías (Nuevas) -->
-        <div class="category-item" style="margin-bottom: 6px;">
-            <label style="font-weight: 600; cursor: pointer;">
-                <input type="checkbox" id="chk-alcaldias" checked /> Delimitación de Alcaldías
-            </label>
-        </div>
+        <div id="main-legend-body" class="collapsed" style="margin-top: 10px;">
+            <!-- Capa temática de Alcaldías -->
+            <div class="category-item" style="margin-bottom: 6px;">
+                <label style="font-weight: 600; cursor: pointer;">
+                    <input type="checkbox" id="chk-alcaldias" /> Delimitación de Alcaldías
+                </label>
+            </div>
 
-        <!-- Capa temática de colonias -->
-        <div class="category-item" style="margin-bottom: 6px;">
-            <label style="font-weight: 600; cursor: pointer;">
-                <input type="checkbox" id="chk-colonias" checked /> Conteo por colonia
-            </label>
-        </div>
+            <!-- Capa temática de colonias -->
+            <div class="category-item" style="margin-bottom: 6px;">
+                <label style="font-weight: 600; cursor: pointer;">
+                    <input type="checkbox" id="chk-colonias" /> Conteo por colonia
+                </label>
+            </div>
 
-        <!-- Capa temática de Hoteles (Nuevos) -->
-        <div class="category-item" style="margin-bottom: 6px;">
-            <label style="font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                <input type="checkbox" id="chk-hoteles" checked /> 
-                <span style="display:inline-block; width:12px; height:12px; background:#1b75bc; border:1px solid #000; border-radius:50%;"></span> Hoteles
-            </label>
-        </div>
+            <!-- Capa temática de Hoteles -->
+            <div class="category-item" style="margin-bottom: 6px;">
+                <label style="font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox" id="chk-hoteles" /> 
+                    <span style="display:inline-block; width:12px; height:12px; background:#1b75bc; border:1px solid #000; border-radius:50%;"></span> Hoteles
+                </label>
+            </div>
 
-        <div style="border-top: 1px dashed #ccc; margin: 8px 0;"></div>
-        
-        <!-- Generación dinámica del árbol Categorías -> Subcategorías de desalojos -->
-        <div id="hierarchy-container"></div>
+            <div style="border-top: 1px dashed #ccc; margin: 8px 0;"></div>
+            
+            <!-- Generación dinámica del árbol Categorías -> Subcategorías de desalojos -->
+            <div id="hierarchy-container"></div>
+        </div>
     </div>
 
     <div id="map"></div>
@@ -435,7 +444,7 @@
         }
 
         // =========================================================
-        // 7. CAPAS ADICIONALES: ALCALDÍAS Y HOTELES
+        // 7. CAPAS ADICIONALES: ALCALDÍAS Y HOTELES (APAGADAS POR DEFAULT)
         // =========================================================
         
         // Capa de Polígonos: Alcaldías
@@ -446,14 +455,14 @@
                     weight: 2,
                     opacity: 1,
                     color: '#2b547e',
-                    fillOpacity: 0.1 // Polígonos semitransparentes para dejar ver el fondo
+                    fillOpacity: 0.1 
                 };
             },
             onEachFeature: function(f, l) {
                 var nombreAlcaldia = f.properties.NOMMUN || f.properties.NOMMUN || f.properties. alcaldia || 'Alcaldía';
                 l.bindPopup('<b>Alcaldía:</b> ' + nombreAlcaldia);
             }
-        }).addTo(map);
+        }); // Sin .addTo(map)
 
         // Control para activar/desactivar capa Alcaldías
         document.getElementById('chk-alcaldias').addEventListener('change', function(e) {
@@ -475,10 +484,10 @@
             },
             onEachFeature: function(f, l) {
                 var p = f.properties;
-                var nombreHotel = p.NOMBRE || p.nombre || p.HOTEL || 'Hotel';
-                l.bindPopup('<b>Hotel:</b> ' + nombreHotel + '<br><b>Dirección:</b> ' + (p.DIRECCION || p.direccion || 'No especificada'));
+                var nombreHotel = p.NOMBRE || p.nombre || p.nom_stab || 'Hotel';
+                l.bindPopup('<b>Hotel:</b> ' + nombreHotel + '<br><b>Dirección:</b> ' + (p.nomb_asent || p.direccion || 'No especificada'));
             }
-        }).addTo(map);
+        }); // Sin .addTo(map)
 
         // Control para activar/desactivar capa Hoteles
         document.getElementById('chk-hoteles').addEventListener('change', function(e) {
@@ -486,7 +495,7 @@
             else map.removeLayer(capaHoteles);
         });
 
-        // 8. Capa temática de Colonias
+        // 8. Capa temática de Colonias (Apagada por defecto)
         var capaColonias = L.geoJSON(colonias, {
             style: function(f) {
                 var d = f.properties.desal_ago_2026;
@@ -496,7 +505,7 @@
             onEachFeature: function(f, l) {
                 l.bindPopup('<b>Alcaldía:</b> ' + f.properties.NOMDT + '<br><b>Colonia:</b> ' + f.properties.NOMUT + '<br><b>Total desalojos:</b> ' + f.properties.desal_ago_2026);
             }
-        }).addTo(map);
+        }); // Sin .addTo(map)
 
         // Controlador para activar/ocultar Capa Colonias y su Leyenda Continua
         document.getElementById('chk-colonias').addEventListener('change', function(e) {
@@ -528,7 +537,7 @@
                         });
                     },
                     onEachFeature: bindPopupContent
-                }).addTo(map);
+                }); // Se eliminó .addTo(map) para que inicien apagadas
             }
             mapaCapas[cat][subcat].addData(feature);
         });
@@ -541,15 +550,15 @@
             var catItem = document.createElement('div');
             catItem.className = 'category-item';
 
-            // HTML de la Categoría Padre
+            // HTML de la Categoría Padre (Sin "checked")
             catItem.innerHTML = 
                 '<div class="category-title">' +
-                    '<span class="toggle-arrow" id="arrow-' + catId + '">▼</span>' +
+                    '<span class="toggle-arrow" id="arrow-' + catId + '" style="transform: rotate(-90deg);">▼</span>' +
                     '<label style="cursor:pointer;" onclick="event.stopPropagation();">' +
-                        '<input type="checkbox" id="chk-' + catId + '" checked /> ' + cat +
+                        '<input type="checkbox" id="chk-' + catId + '" /> ' + cat +
                     '</label>' +
                 '</div>' +
-                '<div class="subcategory-list" id="list-' + catId + '"></div>';
+                '<div class="subcategory-list collapsed" id="list-' + catId + '"></div>';
 
             hierarchyContainer.appendChild(catItem);
 
@@ -558,13 +567,13 @@
             var titleDiv = catItem.querySelector('.category-title');
             var parentChk = catItem.querySelector('#chk-' + catId);
 
-            // Funcionalidad Colapsar/Desplegar
+            // Funcionalidad Colapsar/Desplegar categoría
             titleDiv.addEventListener('click', function() {
                 var isCollapsed = subListContainer.classList.toggle('collapsed');
                 arrow.style.transform = isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
             });
 
-            // Generar las Subcategorías Hijas con Indentación
+            // Generar las Subcategorías Hijas con Indentación (Sin "checked")
             Object.keys(mapaCapas[cat]).sort().forEach(function(subcat, subIdx) {
                 var subId = catId + '-sub-' + subIdx;
                 var color = getColorSubcat(subcat);
@@ -574,7 +583,7 @@
                 subItem.className = 'subcategory-item';
                 subItem.innerHTML = 
                     '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;">' +
-                        '<input type="checkbox" class="sub-chk-' + catId + '" id="' + subId + '" checked /> ' +
+                        '<input type="checkbox" class="sub-chk-' + catId + '" id="' + subId + '" /> ' +
                         '<span class="shape-preview">' + shapePreview + '</span> ' + subcat +
                     '</label>';
 
@@ -587,13 +596,12 @@
                     if (e.target.checked) map.addLayer(layer);
                     else map.removeLayer(layer);
 
-                    // Actualizar el estado del Checkbox Padre si todos están desmarcados o marcados
                     var allSubChks = Array.from(document.querySelectorAll('.sub-chk-' + catId));
                     parentChk.checked = allSubChks.some(chk => chk.checked);
                 });
             });
 
-            // Evento Checkbox Categoría Padre (Activa / Desactiva todas las hijas)
+            // Evento Checkbox Categoría Padre
             parentChk.addEventListener('change', function(e) {
                 var isChecked = e.target.checked;
                 Object.keys(mapaCapas[cat]).forEach(function(subcat) {
@@ -602,7 +610,6 @@
                     else map.removeLayer(layer);
                 });
 
-                // Marcar/desmarcar checkboxes hijos en la interfaz
                 document.querySelectorAll('.sub-chk-' + catId).forEach(function(chk) {
                     chk.checked = isChecked;
                 });
@@ -610,8 +617,21 @@
         });
 
         // =========================================================
-        // FUNCIONALIDAD COLAPSAR/DESPLEGAR LEYENDA DE FORMAS
+        // FUNCIONALIDADES DE COLAPSO (MENÚ PRINCIPAL Y LEYENDA DE FORMAS)
         // =========================================================
+        function toggleMainLegend() {
+            var body = document.getElementById('main-legend-body');
+            var arrow = document.getElementById('main-arrow');
+            
+            if (body.classList.contains('collapsed')) {
+                body.classList.remove('collapsed');
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                body.classList.add('collapsed');
+                arrow.style.transform = 'rotate(-90deg)';
+            }
+        }
+
         function toggleFormaLegend() {
             var content = document.getElementById('forma-legend-content');
             var btn = document.getElementById('btn-toggle-legend');
